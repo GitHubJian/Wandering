@@ -1,0 +1,6 @@
+{
+  "publicPath": "/feed/static/",
+  "all": ["js/1.c7943b6b783da812014d.js", "js/news.bf3e42675d5a4396e740.js"],
+  "initial": ["js/news.bf3e42675d5a4396e740.js"],
+  "async": ["js/1.c7943b6b783da812014d.js"]
+}
