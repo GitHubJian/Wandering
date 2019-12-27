@@ -2,6 +2,8 @@ var appRoot = require('app-root-path')
 var path$2 = require('path')
 var fs = require('fs')
 var serialize = require('serialize-javascript')
+var vm = require('vm')
+var NativeModule = require('module')
 var nunjucks = require('nunjucks')
 nunjucks.configure({
   autoescape: true
@@ -24,6 +26,8 @@ function compile$1(template) {
   return function(context) {
     return nunjucks.renderString(template, context)
   }
+  // var template = nunjucks.compile(template)
+  // return template.render
 }
 
 function parseTemplate(template, contentPlaceholder) {
@@ -375,13 +379,8 @@ RenderContext.prototype.next = function next() {}
 
 function createRenderFunction() {
   return function render(component, write, userContext, done) {
-    try {
-      var raw = nunjucks.renderString(component, userContext)
-      write(raw)
-      done()
-    } catch (e) {
-      done(e)
-    }
+    write(component)
+    done()
   }
 }
 
@@ -521,12 +520,7 @@ function createBundleRendererCreator(createRenderer) {
 
     var renderer = createRenderer(rendererOptions)
 
-    var run = createBundleRunner(
-      entry,
-      files,
-      basedir,
-      rendererOptions.runInNewContext
-    )
+    var run = createBundleRunner(entry, files)
 
     return {
       renderToString: function(context, cb) {
@@ -562,48 +556,60 @@ function createBundleRendererCreator(createRenderer) {
   }
 }
 
-function compileModule(files, basedir, runInNewContext) {
+function compileModule(files) {
   var compiledScripts = {}
-  var resolvedModules = {}
 
   function getCompiledScript(filename) {
+    debugger
     if (compiledScripts[filename]) {
       return compiledScripts[filename]
     }
     var code = files[filename]
     return code
+    // var wrapper = NativeModule.wrap(code)
+
+    // var script = new vm.Script(wrapper, {
+    //   filename: filename,
+    //   displayErrors: true
+    // })
+
+    // compiledScripts[filename] = script
+    // return script
   }
 
-  function evaluateModule(filename, sandbox, evaluatedFiles) {
+  function evaluateModule(filename, evaluatedFiles) {
     if (evaluatedFiles === void 0) evaluatedFiles = {}
 
     if (evaluatedFiles[filename]) {
       return evaluatedFiles[filename]
     }
 
-    var res
-    ;(function() {
-      var script = getCompiledScript(filename)
-      var template = nunjucks.compile(script)
+    var script = getCompiledScript(filename)
+    // var compiledWrapper = script.runInThisContext()
+    // var m = { exports: {} }
+    // var r = function(file) {
+    //   file = path$1.posix.join('.', file)
+    //   if (files[file]) {
+    //     return evaluateModule(file, sandbox, evaluatedFiles)
+    //   } else if (basedir) {
+    //     return require(resolvedModules[file] ||
+    //       (resolvedModules[file] = resolve.sync(file, { basedir: basedir })))
+    //   } else {
+    //     return require(file)
+    //   }
+    // }
+    // compiledWrapper.call(m.exports, m.exports, r, m)
 
-      res = function(userContext) {
-        return template.render(userContext)
-      }
-    })()
+    // var res = Object.prototype.hasOwnProperty.call(m.exports, 'default')
+    //   ? m.exports.default
+    //   : m.exports
+    res = function(userContext) {
+      debugger
+      return nunjucks.renderString(script, userContext)
+    }
 
     evaluatedFiles[filename] = res
-
     return res
-
-    // var script = getCompiledScript(filename)
-
-    // var res = function(userContext) {
-    //   return nunjucks.renderString(script, userContext)
-    // }
-
-    // evaluatedFiles[filename] = res
-
-    // return res
   }
 
   return evaluateModule
