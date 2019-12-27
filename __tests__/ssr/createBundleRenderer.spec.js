@@ -2,22 +2,21 @@ const path = require('path')
 const fs = require('fs')
 const fse = require('fs-extra')
 const clientManifest = require('./client-manifest.json')
-const view = fs.readFileSync(path.resolve(__dirname, 'tail.njk'), 'utf-8')
+const serverBundle = require('./server-bundle.json')
 
 const template = fs.readFileSync(
   path.resolve(__dirname, 'template.html'),
   'utf-8'
 )
 
-const { createRenderer } = require('../server-renderer')
+const { createBundleRenderer } = require('../../server-renderer')
 
-const renderer = createRenderer({
+const renderer = createBundleRenderer(serverBundle, {
   template: template,
-  clientManifest: clientManifest
+  clientManifest
 })
 
 renderer.renderToString(
-  view,
   {
     reportConf: {
       cid: 'abc'
@@ -27,7 +26,6 @@ renderer.renderToString(
     }
   },
   function(err, html) {
-    debugger
     if (err) {
       console.error(err)
     } else {

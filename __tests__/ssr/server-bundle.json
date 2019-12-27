@@ -1,0 +1,6 @@
+{
+  "entry": "pages_1",
+  "files": {
+    "pages_1": "<div>My name is <strong>{{ state.name }}</strong></div>"
+  }
+}

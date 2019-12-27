@@ -1,0 +1,33 @@
+{
+  "publicPath": "/",
+  "all": [
+    "js/global.3215a460.js",
+    "js/global.3215a460.js.map",
+    "js/pages/1.56ed5ee4.js",
+    "js/pages/1.56ed5ee4.js.map",
+    "njk-ssr-server-bundle.json"
+  ],
+  "initial": [
+    "js/pages/1.56ed5ee4.js",
+    "js/global.3215a460.js"
+  ],
+  "async": [],
+  "modules": {
+    "6c5ad710": [
+      0,
+      1
+    ],
+    "3282dfa3": [
+      2,
+      3
+    ],
+    "c4686606": [
+      0,
+      1
+    ],
+    "0ecf95d6": [
+      2,
+      3
+    ]
+  }
+}

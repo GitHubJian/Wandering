@@ -25,7 +25,6 @@ function getPolyfills(
 }
 
 module.exports = (context, options = {}) => {
-  debugger
   const presets = []
   const plugins = []
   const defaultEntryFiles = JSON.parse(

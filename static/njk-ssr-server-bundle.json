@@ -1,0 +1,7 @@
+{
+  "entry": "js/global.3215a460.js",
+  "files": {
+    "pages/1": "<div>Hello, {{ state.msg }}</div>"
+  },
+  "maps": {}
+}
