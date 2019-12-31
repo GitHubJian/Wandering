@@ -362,46 +362,9 @@ function extend(to, _from) {
   return to
 }
 
-var vm = {
-  Script: function(name) {
-    var tmpl = new environment.getTemplate(name, true)
-
-    return function(context) {
-      return tmpl.render(context)
-    }
-  }
-}
-
-function compileModule() {
-  var compiledScripts = Object.create(null)
-
-  function evaluateModule(filename) {
-    if (compiledScripts[filename]) {
-      return compiledScripts[filename]
-    }
-
-    var script = vm.Script(filename)
-
-    compiledScripts[filename] = script
-    return script
-  }
-
-  return evaluateModule
-}
-
 function createRenderFunction() {
-  var evaluate = compileModule()
-
-  var runner
-
-  return function(filename, write, userContext, done) {
-    if (!runner) {
-      runner = evaluate(filename)
-    }
-
-    var raw = runner(userContext)
-
-    write(raw)
+  return function(component, write, userContext, done) {
+    write(component)
     done()
   }
 }
@@ -422,13 +385,6 @@ function createRenderer(ref) {
   var shouldPrefetch = ref.shouldPrefetch
   var clientManifest = ref.clientManifest
   var serializer = ref.serializer
-  var basedir = ref.basedir
-
-  if (!basedir) {
-    throw new Error('basedir is required.')
-  }
-
-  environment = new nunjucks.Environment(new nunjucks.FileSystemLoader(basedir))
 
   var render = createRenderFunction()
 
@@ -441,7 +397,7 @@ function createRenderer(ref) {
   })
 
   return {
-    renderToString: function(component, context, cb) {
+    renderToString: function renderToString(component, context, cb) {
       var assign
 
       if (typeof context === 'function') {
@@ -506,4 +462,165 @@ function createRenderer$1(options) {
   return createRenderer(extend({}, options))
 }
 
+function createBundleRendererCreator(createRenderer) {
+  return function createBundleRenderer(bundle, rendererOptions) {
+    if (rendererOptions === void 0) rendererOptions = {}
+    debugger
+    var files, entry, maps
+    var basedir = rendererOptions.basedir
+    // load bundle if given filepath
+    if (
+      typeof bundle === 'string' &&
+      /\.js(on)?$/.test(bundle) &&
+      path$2.isAbsolute(bundle)
+    ) {
+      if (fs.existsSync(bundle)) {
+        var isJSON = /\.json$/.test(bundle)
+        basedir = basedir || path$2.dirname(bundle)
+        bundle = fs.readFileSync(bundle, 'utf-8')
+        if (isJSON) {
+          try {
+            bundle = JSON.parse(bundle)
+          } catch (e) {
+            throw new Error('Invalid JSON bundle file: ' + bundle)
+          }
+        }
+      } else {
+        throw new Error('Cannot locate bundle file: ' + bundle)
+      }
+    }
+
+    if (typeof bundle === 'object') {
+      entry = bundle.entry
+      files = bundle.files
+      basedir = basedir || bundle.basedir
+      if (typeof entry !== 'string' || typeof files !== 'object') {
+        throw new Error(INVALID_MSG)
+      }
+    } else if (typeof bundle === 'string') {
+      entry = '__vue_ssr_bundle__'
+      files = { __vue_ssr_bundle__: bundle }
+      maps = {}
+    } else {
+      throw new Error(INVALID_MSG)
+    }
+
+    if (!basedir) {
+      throw new Error('basedir is undefined')
+    }
+
+    environment = new nunjucks.Environment(
+      new nunjucks.FileSystemLoader(basedir)
+    )
+
+    var renderer = createRenderer(rendererOptions)
+
+    var run = createBundleRunner(entry, files)
+
+    return {
+      renderToString: function(context, cb) {
+        var assign
+
+        if (typeof context === 'function') {
+          cb = context
+          context = {}
+        }
+
+        var promise
+        if (!cb) {
+          assign = createPromiseCallback()
+          promise = assign.promise
+          cb = assign.cb
+        }
+
+        run(context)
+          .catch(function(err) {
+            cb(err)
+          })
+          .then(function(app) {
+            if (app) {
+              renderer.renderToString(app, context, function(err, res) {
+                cb(err, res)
+              })
+            }
+          })
+
+        return promise
+      }
+    }
+  }
+}
+
+var NativeModule = {
+  wrap: function(code) {
+    return code
+  }
+}
+
+var vm = {
+  Script: function(wrapper) {
+    var tmpl = new nunjucks.Template(wrapper, environment, true)
+    
+    return function(context) {
+      return tmpl.render(context)
+    }
+  }
+}
+
+function compileModule(files, basedir, runInNewContext) {
+  var compiledScripts = Object.create(null)
+
+  function getCompiledScript(filename) {
+    if (compiledScripts[filename]) {
+      return compiledScripts[filename]
+    }
+    var code = files[filename]
+    var wrapper = NativeModule.wrap(code)
+    var script = vm.Script(wrapper)
+
+    compiledScripts[filename] = script
+    return script
+  }
+
+  function evaluateModule(filename, evaluatedFiles) {
+    if (evaluatedFiles === void 0) evaluatedFiles = {}
+
+    if (evaluatedFiles[filename]) {
+      return evaluatedFiles[filename]
+    }
+
+    var script = getCompiledScript(filename)
+
+    res = script
+
+    evaluatedFiles[filename] = res
+    return res
+  }
+
+  return evaluateModule
+}
+
+function createBundleRunner(entry, files, basedir, runInNewContext) {
+  var evaluate = compileModule(files, basedir, runInNewContext)
+
+  var runner
+
+  return function(userContext) {
+    if (userContext === void 0) userContext = {}
+
+    return new Promise(function(resolve) {
+      if (!runner) {
+        runner = evaluate(entry)
+      }
+
+      var raw = runner(userContext)
+
+      resolve(raw)
+    })
+  }
+}
+
+var createBundleRenderer = createBundleRendererCreator(createRenderer$1)
+
 exports.createRenderer = createRenderer$1
+exports.createBundleRenderer = createBundleRenderer
