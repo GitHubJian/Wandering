@@ -8,7 +8,22 @@
   "main": "lib/Service.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "webpack:debug": "node --inspect-brk ./node_modules/webpack/bin/webpack.js --inline --progress"
+    "webpack:debug": "node --inspect-brk ./node_modules/webpack/bin/webpack.js --inline --progress",
+    "format": "standard --fix"
+  },
+  "standard": {
+    "ignore": [
+      "/node_modules/",
+      "/.temp/",
+      "/dist/",
+      "/static/"
+    ],
+    "global": [
+      "define",
+      "Image",
+      "FormData",
+      "fetch"
+    ]
   },
   "keywords": [],
   "author": "",

@@ -1,68 +1,131 @@
-var isJS = function(file) {
-  return /\.js(\?[^.]+)?$/.test(file)
-}
+const path = require('path')
 
-var isCSS = function(file) {
-  return /\.css(\?[^.]+)?$/.test(file)
-}
+const chunkSorter = require('./chunksorter.js')
 
-var hash = require('hash-sum')
-var uniq = require('lodash.uniq')
+class ClientPlugin {
+  constructor (options) {
+    const userOptions = options || {}
 
-var onEmit = function(compiler, name, hook) {
-  if (compiler.hooks) {
-    compiler.hooks.emit.tapAsync(name, hook)
-  } else {
-    compiler.plugin('emit', hook)
+    const defaultOptions = {
+      filename: 'client-manifest.json',
+      chunks: 'all',
+      excludeChunks: [],
+      chunksSortMode: 'auto'
+    }
+
+    this.options = Object.assign(defaultOptions, userOptions)
+  }
+
+  apply (compiler) {
+    const self = this
+
+    compiler.hooks.emit.tapAsync('client-plugin', (compilation, callback) => {
+      const stats = compilation.getStats().toJson()
+
+      const entryNames = Array.from(compilation.entrypoints.keys())
+      const filteredEntryNames = self.filterChunks(
+        entryNames,
+        self.options.chunks,
+        self.options.excludeChunks
+      )
+      const sortedEntryNames = self.sortEntryChunks(
+        filteredEntryNames,
+        this.options.chunksSortMode,
+        compilation
+      )
+
+      const manifest = self.clientPluginAssets(compilation, sortedEntryNames)
+
+      const json = JSON.stringify(manifest, null, 2)
+
+      compilation.assets[self.options.filename] = {
+        source: function () {
+          return json
+        },
+        size: function () {
+          return json.length
+        }
+      }
+      callback()
+    })
+  }
+
+  clientPluginAssets (compilation, entryNames) {
+    const stats = compilation.getStats().toJson()
+
+    const assets = {
+      publicPath: stats.publicPath,
+      js: [],
+      css: [],
+      manifest: Object.keys(compilation.assets).find(
+        assetFile => path.extname(assetFile) === '.appcache'
+      )
+    }
+
+    const entryPointPublicPathMap = {}
+    const extensionRegexp = /\.(css|js|mjs)(\?|$)/
+    for (let i = 0; i < entryNames.length; i++) {
+      const entryName = entryNames[i]
+      const entryPointFiles = compilation.entrypoints.get(entryName).getFiles()
+
+      const entryPointPublicPaths = entryPointFiles.map(chunkFile => {
+        const entryPointPublicPath = publicPath + this.urlencodePath(chunkFile)
+        return entryPointPublicPath
+      })
+
+      entryPointPublicPaths.forEach(entryPointPublicPath => {
+        const extMatch = extensionRegexp.exec(entryPointPublicPath)
+
+        if (!extMatch) {
+          return
+        }
+
+        if (entryPointPublicPathMap[entryPointPublicPath]) {
+          return
+        }
+        entryPointPublicPathMap[entryPointPublicPath] = true
+
+        const ext = extMatch[1] === 'mjs' ? 'js' : extMatch[1]
+        assets[ext].push(entryPointPublicPath)
+      })
+    }
+    return assets
+  }
+
+  urlencodePath (filePath) {
+    return filePath
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/')
+  }
+
+  sortEntryChunks (entryNames, sortMode, compilation) {
+    if (typeof sortMode === 'function') {
+      return entryNames.sort(sortMode)
+    }
+    if (typeof chunkSorter[sortMode] !== 'undefined') {
+      return chunkSorter[sortMode](entryNames, compilation, this.options)
+    }
+    throw new Error('"' + sortMode + '" is not a valid chunk sort mode')
+  }
+
+  filterChunks (chunks, includedChunks, excludedChunks) {
+    return chunks.filter(chunkName => {
+      if (
+        Array.isArray(includedChunks) &&
+        includedChunks.indexOf(chunkName) === -1
+      ) {
+        return false
+      }
+      if (
+        Array.isArray(excludedChunks) &&
+        excludedChunks.indexOf(chunkName) !== -1
+      ) {
+        return false
+      }
+      return true
+    })
   }
 }
 
-function NjkSSRClientPlugin(options) {
-  if (options === void 0) options = {}
-
-  this.options = Object.assign(
-    {
-      filename: 'njk-ssr-client-manifest.json',
-      chunks: []
-    },
-    options
-  )
-}
-
-NjkSSRClientPlugin.prototype.apply = function apply(compiler) {
-  var this$1 = this
-
-  onEmit(compiler, 'njk-client-plugin', function(compilation, cb) {
-    var stats = compilation.getStats().toJson()
-
-    var assetsByChunkName = Object.keys(stats.entrypoints).reduce(function(
-      prev,
-      name
-    ) {
-      prev[name] = stats.entrypoints[name].assets.filter(function(file) {
-        return isJS(file) || isCSS(file)
-      })
-
-      return prev
-    },
-    {})
-
-    var manifest = {
-      publicPath: stats.publicPath,
-      assetsByChunkName: assetsByChunkName
-    }
-
-    var json = JSON.stringify(manifest, null, 2)
-    compilation.assets[this$1.options.filename] = {
-      source: function() {
-        return json
-      },
-      size: function() {
-        return json.length
-      }
-    }
-    cb()
-  })
-}
-
-module.exports = NjkSSRClientPlugin
+module.exports = ClientPlugin

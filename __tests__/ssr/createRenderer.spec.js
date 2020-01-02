@@ -26,7 +26,7 @@ renderer.renderToString(
       name: 'xiaows'
     }
   },
-  function(err, html) {
+  function (err, html) {
     if (err) {
       console.error(err)
     } else {

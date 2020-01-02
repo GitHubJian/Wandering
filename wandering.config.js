@@ -15,7 +15,7 @@ module.exports = {
       entry: 'src/pages/1/app.js'
     }
   },
-  chainWebpack: function(config) {
+  chainWebpack: function (config) {
     for (var [key] of config.plugins.store) {
       if (
         ['preload', 'prefetch', 'html'].some(v => {

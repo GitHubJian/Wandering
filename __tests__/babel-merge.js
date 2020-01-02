@@ -18,12 +18,12 @@ const combineMerge = (target, source, options) => {
   return destination
 }
 
-let defaultOptions = require(path.resolve(
+const defaultOptions = require(path.resolve(
   __dirname,
   '../bin/config',
   'babel-default.js'
 ))
-let userOptions = require(path.resolve(__dirname, '..', 'babel.config.js'))
+const userOptions = require(path.resolve(__dirname, '..', 'babel.config.js'))
 try {
   const together = babelmerge(defaultOptions, userOptions)
 

@@ -1,4 +1,4 @@
-module.exports = function silence(logName, exports) {
+module.exports = function silence (logName, exports) {
   const logs = {}
   Object.keys(exports).forEach(key => {
     if (key !== 'error') {

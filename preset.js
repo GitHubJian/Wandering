@@ -7,7 +7,7 @@ const defaultPolyfills = [
   'es.promise.finally'
 ]
 
-function getPolyfills(
+function getPolyfills (
   targets,
   includes,
   { ignoreBrowserslistConfig, configPath }
@@ -63,7 +63,7 @@ module.exports = (context, options = {}) => {
     targets = rawTargets
   }
 
-  let polyfills = []
+  const polyfills = []
   // const buildTarget = process.env.WANDERING_CLI_BUILD_TARGET || 'app'
   // if (
   //   buildTarget === 'app' &&

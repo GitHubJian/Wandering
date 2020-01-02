@@ -1,4 +1,4 @@
-function add(arr) {
+function add (arr) {
   arr.reduce((prev, cur) => {
     prev += cur
 

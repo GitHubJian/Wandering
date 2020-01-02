@@ -9,25 +9,24 @@ var INVALID_MSG =
   'or a bundle Object of type:\n\n' +
   '{\n  entry: string;\n  files: { [filename: string]: string; };\n  maps: { [filename: string]: string; };\n}\n'
 
-var isJS = function(file) {
+var isJS = function (file) {
   return /\.js(\?[^.]+)?$/.test(file)
 }
 
-var isCSS = function(file) {
+var isCSS = function (file) {
   return /\.css(\?[^.]+)?$/.test(file)
 }
 
-function compile$1(template) {
+function compile$1 (template) {
   var tmpl = new nunjucks.Template(template, environment, true)
 
-  return function(context) {
+  return function (context) {
     return tmpl.render(context)
   }
 }
 
-function parseTemplate(template, contentPlaceholder) {
-  if (contentPlaceholder === void 0)
-    contentPlaceholder = '<!--njk-ssr-outlet-->'
+function parseTemplate (template, contentPlaceholder) {
+  if (contentPlaceholder === void 0) { contentPlaceholder = '<!--njk-ssr-outlet-->' }
 
   if (typeof template === 'object') {
     return template
@@ -54,29 +53,13 @@ function parseTemplate(template, contentPlaceholder) {
   }
 }
 
-function createPromiseCallback() {
-  var resolve, reject
-  var promise = new Promise(function(_resolve, _reject) {
-    resolve = _resolve
-    reject = _reject
-  })
-  var cb = function(err, res) {
-    if (err) {
-      return reject(err)
-    }
-    resolve(res || '')
-  }
-  return { promise: promise, cb: cb }
-}
-
-function createMapper(clientManifest) {
-  // map server-side moduleIds to client-side files
-  return function mapper(moduleIds) {
+function createMapper () {
+  return function mapper () {
     return []
   }
 }
 
-function TemplateRenderer(options) {
+function TemplateRenderer (options) {
   this.options = options
   // if no template option is provided, the renderer is created
   // as a utility object for rendering assets like preload links and scripts.
@@ -91,7 +74,7 @@ function TemplateRenderer(options) {
   // function used to serialize initial state JSON
   this.serialize =
     options.serializer ||
-    function(state) {
+    function (state) {
       return serialize(state, { isJSON: true })
     }
 
@@ -111,17 +94,17 @@ function TemplateRenderer(options) {
   }
 }
 
-TemplateRenderer.prototype.bindRenderFns = function bindRenderFns(context) {
+TemplateRenderer.prototype.bindRenderFns = function bindRenderFns (context) {
   var renderer = this
 
-  ;['ResourceHints', 'State', 'Scripts', 'Styles'].forEach(function(type) {
+  ;['ResourceHints', 'State', 'Scripts', 'Styles'].forEach(function (type) {
     context['render' + type] = renderer['render' + type].bind(renderer, context)
   })
 
   context.getPreloadFiles = renderer.getPreloadFiles.bind(renderer, context)
 }
 
-TemplateRenderer.prototype.render = function render(content, context) {
+TemplateRenderer.prototype.render = function render (content, context) {
   var template = this.parsedTemplate
   if (!template) {
     throw new Error('render cannot be called without a template.')
@@ -145,14 +128,14 @@ TemplateRenderer.prototype.render = function render(content, context) {
   )
 }
 
-TemplateRenderer.prototype.renderStyles = function renderStyles(context) {
+TemplateRenderer.prototype.renderStyles = function renderStyles (context) {
   var this$1 = this
 
   var initial = this.preloadFiles || []
 
   var async = this.getUsedAsyncFiles(context) || []
 
-  var cssFiles = initial.concat(async).filter(function(ref) {
+  var cssFiles = initial.concat(async).filter(function (ref) {
     var file = ref.file
 
     return isCSS(file)
@@ -161,24 +144,24 @@ TemplateRenderer.prototype.renderStyles = function renderStyles(context) {
   return (
     // render links for css files
     (cssFiles.length
-      ? cssFiles.map(function(ref) {
-          var file = ref.file
+      ? cssFiles.map(function (ref) {
+        var file = ref.file
 
-          return (
-            '<link rel="stylesheet" href="' + this$1.publicPath + file + '">'
-          )
-        })
+        return (
+          '<link rel="stylesheet" href="' + this$1.publicPath + file + '">'
+        )
+      })
       : '') + (context.styles || '')
   )
 }
 
-TemplateRenderer.prototype.renderResourceHints = function renderResourceHints(
+TemplateRenderer.prototype.renderResourceHints = function renderResourceHints (
   context
 ) {
   return this.renderPreloadLinks(context) + this.renderPrefetchLinks(context)
 }
 
-TemplateRenderer.prototype.getPreloadFiles = function getPreloadFiles(context) {
+TemplateRenderer.prototype.getPreloadFiles = function getPreloadFiles (context) {
   var usedAsyncFiles = this.getUsedAsyncFiles(context)
   if (this.preloadFiles || usedAsyncFiles) {
     return (this.preloadFiles || []).concat(usedAsyncFiles)
@@ -187,7 +170,7 @@ TemplateRenderer.prototype.getPreloadFiles = function getPreloadFiles(context) {
   }
 }
 
-TemplateRenderer.prototype.renderPreloadLinks = function renderPreloadLinks(
+TemplateRenderer.prototype.renderPreloadLinks = function renderPreloadLinks (
   context
 ) {
   var this$1 = this
@@ -195,7 +178,7 @@ TemplateRenderer.prototype.renderPreloadLinks = function renderPreloadLinks(
   var files = this.getPreloadFiles(context)
   if (files.length) {
     return files
-      .map(function(ref) {
+      .map(function (ref) {
         var file = ref.file
         var asType = ref.asType
 
@@ -221,7 +204,7 @@ TemplateRenderer.prototype.renderPreloadLinks = function renderPreloadLinks(
   }
 }
 
-TemplateRenderer.prototype.renderPrefetchLinks = function renderPrefetchLinks(
+TemplateRenderer.prototype.renderPrefetchLinks = function renderPrefetchLinks (
   context
 ) {
   var this$1 = this
@@ -229,16 +212,16 @@ TemplateRenderer.prototype.renderPrefetchLinks = function renderPrefetchLinks(
   var shouldPrefetch = this.options.shouldPrefetch
   if (this.preloadFiles) {
     var usedAsyncFiles = this.getUsedAsyncFiles(context)
-    var alreadyRendered = function(file) {
+    var alreadyRendered = function (file) {
       return (
         usedAsyncFiles &&
-        usedAsyncFiles.some(function(f) {
+        usedAsyncFiles.some(function (f) {
           return f.file === file
         })
       )
     }
     return this.prefetchFiles
-      .map(function(ref) {
+      .map(function (ref) {
         var file = ref.file
         var fileWithoutQuery = ref.fileWithoutQuery
         var asType = ref.asType
@@ -257,7 +240,7 @@ TemplateRenderer.prototype.renderPrefetchLinks = function renderPrefetchLinks(
   }
 }
 
-TemplateRenderer.prototype.renderState = function renderState(
+TemplateRenderer.prototype.renderState = function renderState (
   context,
   options
 ) {
@@ -281,23 +264,23 @@ TemplateRenderer.prototype.renderState = function renderState(
     : ''
 }
 
-TemplateRenderer.prototype.renderScripts = function renderScripts(context) {
+TemplateRenderer.prototype.renderScripts = function renderScripts (context) {
   var this$1 = this
 
   if (this.clientManifest) {
-    var initial = this.preloadFiles.filter(function(ref) {
+    var initial = this.preloadFiles.filter(function (ref) {
       var file = ref.file
 
       return isJS(file)
     })
-    var async = (this.getUsedAsyncFiles(context) || []).filter(function(ref) {
+    var async = (this.getUsedAsyncFiles(context) || []).filter(function (ref) {
       var file = ref.file
 
       return isJS(file)
     })
     var needed = [initial[0]].concat(async, initial.slice(1))
     return needed
-      .map(function(ref) {
+      .map(function (ref) {
         var file = ref.file
 
         return '<script src="' + this$1.publicPath + file + '" defer></script>'
@@ -308,7 +291,7 @@ TemplateRenderer.prototype.renderScripts = function renderScripts(context) {
   }
 }
 
-TemplateRenderer.prototype.getUsedAsyncFiles = function getUsedAsyncFiles(
+TemplateRenderer.prototype.getUsedAsyncFiles = function getUsedAsyncFiles (
   context
 ) {
   // if (!context._mappedFiles && context._registeredComponents && this.mapFiles) {
@@ -319,7 +302,7 @@ TemplateRenderer.prototype.getUsedAsyncFiles = function getUsedAsyncFiles(
   return []
 }
 
-function normalizeFile(file) {
+function normalizeFile (file) {
   var withoutQuery = file.replace(/\?.*/, '')
   var extension = path$2.extname(withoutQuery).slice(1)
   return {
@@ -330,7 +313,7 @@ function normalizeFile(file) {
   }
 }
 
-function getPreloadType(ext) {
+function getPreloadType (ext) {
   if (ext === 'js') {
     return 'script'
   } else if (ext === 'css') {
@@ -345,7 +328,7 @@ function getPreloadType(ext) {
   }
 }
 
-function extend(to, _from) {
+function extend (to, _from) {
   for (var key in _from) {
     to[key] = _from[key]
   }
@@ -353,19 +336,19 @@ function extend(to, _from) {
 }
 
 var vm = {
-  Script: function(name) {
+  Script: function (name) {
     var tmpl = new environment.getTemplate(name, true)
 
-    return function(context) {
+    return function (context) {
       return tmpl.render(context)
     }
   }
 }
 
-function compileModule() {
+function compileModule () {
   var compiledScripts = Object.create(null)
 
-  function evaluateModule(filename) {
+  function evaluateModule (filename) {
     if (compiledScripts[filename]) {
       return compiledScripts[filename]
     }
@@ -379,12 +362,12 @@ function compileModule() {
   return evaluateModule
 }
 
-function createRenderFunction() {
+function createRenderFunction () {
   var evaluate = compileModule()
 
   var runner
 
-  return function(filename, write, userContext, done) {
+  return function (filename, write, userContext, done) {
     if (!runner) {
       runner = evaluate(filename)
     }
@@ -396,15 +379,15 @@ function createRenderFunction() {
   }
 }
 
-function createWriteFunction(write, onError) {
-  var cachedWrite = function(text) {
+function createWriteFunction (write, onError) {
+  var cachedWrite = function (text) {
     write(text)
   }
 
   return cachedWrite
 }
 
-function createRenderer(ref) {
+function createRenderer (ref) {
   if (ref === void 0) ref = {}
 
   var template = ref.template
@@ -431,19 +414,19 @@ function createRenderer(ref) {
   })
 
   return {
-    renderToString: function(component, context, cb) {
+    renderToString: function (component, context, cb) {
       if (typeof context === 'function') {
         cb = context
         context = {}
       }
 
       var result = ''
-      var write = createWriteFunction(function(text) {
+      var write = createWriteFunction(function (text) {
         result += text
         return false
       })
       try {
-        render(component, write, context, function(err) {
+        render(component, write, context, function (err) {
           if (err) {
             return cb(err)
           }
@@ -453,7 +436,7 @@ function createRenderer(ref) {
               if (typeof res !== 'string') {
                 // function template returning promise
                 res
-                  .then(function(html) {
+                  .then(function (html) {
                     return cb(null, html)
                   })
                   .catch(cb)
@@ -474,7 +457,7 @@ function createRenderer(ref) {
   }
 }
 
-function createRenderer$1(options) {
+function createRenderer$1 (options) {
   if (options === void 0) options = {}
 
   return createRenderer(extend({}, options))
