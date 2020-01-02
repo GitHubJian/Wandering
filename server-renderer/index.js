@@ -107,7 +107,6 @@ function TemplateRenderer(options) {
     this.preloadFiles = (clientManifest.initial || []).map(normalizeFile)
     this.prefetchFiles = (clientManifest.async || []).map(normalizeFile)
     // initial async chunk mapping
-    // this.mapFiles = createMapper(clientManifest)
     this.mapFiles = createMapper(clientManifest)
   }
 }
@@ -194,27 +193,18 @@ TemplateRenderer.prototype.renderPreloadLinks = function renderPreloadLinks(
   var this$1 = this
 
   var files = this.getPreloadFiles(context)
-  var shouldPreload = this.options.shouldPreload
   if (files.length) {
     return files
       .map(function(ref) {
         var file = ref.file
-        var extension = ref.extension
-        var fileWithoutQuery = ref.fileWithoutQuery
         var asType = ref.asType
 
         var extra = ''
         // by default, we only preload scripts or css
-        if (!shouldPreload && asType !== 'script' && asType !== 'style') {
+        if (asType !== 'script' && asType !== 'style') {
           return ''
         }
-        // user wants to explicitly control what to preload
-        if (shouldPreload && !shouldPreload(fileWithoutQuery, asType)) {
-          return ''
-        }
-        if (asType === 'font') {
-          extra = ' type="font/' + extension + '" crossorigin'
-        }
+
         return (
           '<link rel="preload" href="' +
           this$1.publicPath +
@@ -442,30 +432,16 @@ function createRenderer(ref) {
 
   return {
     renderToString: function(component, context, cb) {
-      var assign
-
       if (typeof context === 'function') {
         cb = context
         context = {}
-      }
-
-      if (context) {
-        templateRenderer.bindRenderFns(context)
-      }
-
-      // no callback, return Promise
-      var promise
-      if (!cb) {
-        assign = createPromiseCallback()
-        promise = assign.promise
-        cb = assign.cb
       }
 
       var result = ''
       var write = createWriteFunction(function(text) {
         result += text
         return false
-      }, cb)
+      })
       try {
         render(component, write, context, function(err) {
           if (err) {
@@ -494,8 +470,6 @@ function createRenderer(ref) {
       } catch (e) {
         cb(e)
       }
-
-      return promise
     }
   }
 }

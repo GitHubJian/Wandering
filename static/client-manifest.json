@@ -1,0 +1,10 @@
+{
+  "publicPath": "/",
+  "js": [
+    "/js/global.js",
+    "/js/pages/1.js"
+  ],
+  "css": [
+    "/global.css"
+  ]
+}

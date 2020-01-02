@@ -1,9 +1,12 @@
 const root = process.cwd()
 const path = require('path')
 
+const NjkSSRServerPlugin = require('./server-renderer/server-plugin')
+const NjkSSRClientPlugin = require('./server-renderer/client-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
-const ClientPlugin = require('./client-plugin')
+const HtmlWebpack = require('./server-router/chunks')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
   entry: {
@@ -41,12 +44,11 @@ module.exports = {
     ]
   },
   plugins: [
-    new ClientPlugin({
-      chunks: ['global', 'pages/1']
-    }),
+    new NjkSSRClientPlugin(),
     new MiniCssExtractPlugin({
       filename: '[name].css'
     }),
-    new CleanWebpackPlugin()
+    new CleanWebpackPlugin(),
+    
   ]
 }
