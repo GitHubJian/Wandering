@@ -1,9 +1,17 @@
-const path = require('path')
+const uniq = require('lodash.uniq')
 
 const chunkSorter = require('./chunksorter.js')
 
+const isJS = function(file) {
+  return /\.js(\?[^.]+)?$/.test(file)
+}
+
+const isCSS = function(file) {
+  return /\.css(\?[^.]+)?$/.test(file)
+}
+
 class ClientPlugin {
-  constructor (options) {
+  constructor(options) {
     const userOptions = options || {}
 
     const defaultOptions = {
@@ -16,12 +24,10 @@ class ClientPlugin {
     this.options = Object.assign(defaultOptions, userOptions)
   }
 
-  apply (compiler) {
+  apply(compiler) {
     const self = this
 
     compiler.hooks.emit.tapAsync('client-plugin', (compilation, callback) => {
-      const stats = compilation.getStats().toJson()
-
       const entryNames = Array.from(compilation.entrypoints.keys())
       const filteredEntryNames = self.filterChunks(
         entryNames,
@@ -39,10 +45,10 @@ class ClientPlugin {
       const json = JSON.stringify(manifest, null, 2)
 
       compilation.assets[self.options.filename] = {
-        source: function () {
+        source: function() {
           return json
         },
-        size: function () {
+        size: function() {
           return json.length
         }
       }
@@ -50,56 +56,32 @@ class ClientPlugin {
     })
   }
 
-  clientPluginAssets (compilation, entryNames) {
+  clientPluginAssets(compilation, entryNames) {
     const stats = compilation.getStats().toJson()
+
+    const initialFiles = uniq(
+      entryNames
+        .map(function(name) {
+          return stats.entrypoints[name].assets
+        })
+        .reduce(function(assets, all) {
+          return all.concat(assets)
+        }, [])
+        .filter(function(file) {
+          return isJS(file) || isCSS(file)
+        })
+    )
 
     const assets = {
       publicPath: stats.publicPath,
-      js: [],
-      css: [],
-      manifest: Object.keys(compilation.assets).find(
-        assetFile => path.extname(assetFile) === '.appcache'
-      )
+      initial: initialFiles,
+      async: []
     }
 
-    const entryPointPublicPathMap = {}
-    const extensionRegexp = /\.(css|js|mjs)(\?|$)/
-    for (let i = 0; i < entryNames.length; i++) {
-      const entryName = entryNames[i]
-      const entryPointFiles = compilation.entrypoints.get(entryName).getFiles()
-
-      const entryPointPublicPaths = entryPointFiles.map(chunkFile => {
-        const entryPointPublicPath = publicPath + this.urlencodePath(chunkFile)
-        return entryPointPublicPath
-      })
-
-      entryPointPublicPaths.forEach(entryPointPublicPath => {
-        const extMatch = extensionRegexp.exec(entryPointPublicPath)
-
-        if (!extMatch) {
-          return
-        }
-
-        if (entryPointPublicPathMap[entryPointPublicPath]) {
-          return
-        }
-        entryPointPublicPathMap[entryPointPublicPath] = true
-
-        const ext = extMatch[1] === 'mjs' ? 'js' : extMatch[1]
-        assets[ext].push(entryPointPublicPath)
-      })
-    }
     return assets
   }
 
-  urlencodePath (filePath) {
-    return filePath
-      .split('/')
-      .map(encodeURIComponent)
-      .join('/')
-  }
-
-  sortEntryChunks (entryNames, sortMode, compilation) {
+  sortEntryChunks(entryNames, sortMode, compilation) {
     if (typeof sortMode === 'function') {
       return entryNames.sort(sortMode)
     }
@@ -109,7 +91,7 @@ class ClientPlugin {
     throw new Error('"' + sortMode + '" is not a valid chunk sort mode')
   }
 
-  filterChunks (chunks, includedChunks, excludedChunks) {
+  filterChunks(chunks, includedChunks, excludedChunks) {
     return chunks.filter(chunkName => {
       if (
         Array.isArray(includedChunks) &&

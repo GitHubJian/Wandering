@@ -3,7 +3,7 @@ const path = require('path')
 
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
-const ClientPlugin = require('./client-plugin')
+const ClientPlugin = require('./server-renderer/client-plugin')
 
 module.exports = {
   entry: {
