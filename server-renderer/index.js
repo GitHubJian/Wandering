@@ -354,7 +354,7 @@ function extend(to, _from) {
 
 var vm = {
   Script: function(name) {
-    var tmpl = environment.getTemplate(name, true)
+    var tmpl = environment.getTemplate(name, false)
 
     return function(context) {
       return tmpl.render(context)
